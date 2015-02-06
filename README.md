@@ -5,7 +5,7 @@ For use with UNO, MEGA, and ATTiny85/45
 Written by itead, forked from his repository:
 https://github.com/itead/ITEADLIB_Arduino_ESP8266
 
-For use with ATTINY, you will need the TextFinder library, which can be downloaded here:
+**For use with ATTINY, you will need the TextFinder library, which can be downloaded here:**
 
 http://playground.arduino.cc/Code/TextFinder
 
