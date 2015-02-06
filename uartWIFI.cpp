@@ -1,9 +1,13 @@
 #include "uartWIFI.h"
 
-#ifdef UNO
 
+#if defined(UNO) || defined(TINY)
 SoftwareSerial mySerial(_DBG_RXPIN_,_DBG_TXPIN_);
+#endif
 
+#ifdef TINY
+SoftwareSerial _cell(_DATA_RXPIN_, _DATA_TXPIN_);
+TextFinder finder(_cell);
 #endif
 
 #ifdef DEBUG
@@ -16,6 +20,21 @@ SoftwareSerial mySerial(_DBG_RXPIN_,_DBG_TXPIN_);
 
 int chlID;		//client id(0-4)
 
+boolean findInStream(String toFind)
+{
+
+	char str[100];
+	toFind.toCharArray(str, toFind.length());
+
+#ifdef TINY
+	boolean result = finder.find(str);
+#elif
+	boolean result = _cell.find(str);
+#endif
+
+	return result;
+}
+
 void WIFI::begin(void)
 {
 	boolean result = false;
@@ -23,10 +42,14 @@ void WIFI::begin(void)
 	
 	DebugSerial.begin(debugBaudRate);		//The default baud rate for debugging is 9600
 	_cell.flush();
+#ifndef TINY
 	_cell.setTimeout(3000);
+#endif
 	_cell.println("AT+RST");
 	DBG("AT+RST\r\n");
-	result = _cell.find("eady");
+	
+	result = findInStream("eady");
+
 	if(result)
 		DBG("Module is ready\r\n");
     else
@@ -189,50 +212,58 @@ int WIFI::ReceiveMessage(char *buf)
 				}
 			}
 			//Serial.println(data);
-			int sLen = strlen(data.c_str());
-			int i,j;
-			for (i = 0; i <= sLen; i++)
+			int semicolon_index = data.indexOf(':', 0);
+			int comma_index = -1;
+			if (semicolon_index >=0)
 			{
-				if (data[i] == ':')
-				{
-					break;
-				}
-				
+				comma_index = data.substring(4, semicolon_index).indexOf(',');
 			}
-			boolean found = false;
-			for (j = 4; j <= i; j++)
-			{
-				if (data[j] == ',')
-				{
-					found = true;
-					break;
-				}
+			boolean found = comma_index > -1;
+			// int sLen = strlen(data.c_str());
+			// int i,j;
+			// for (i = 0; i <= sLen; i++)
+			// {
+			// 	if (data[i] == ':')
+			// 	{
+			// 		break;
+			// 	}
 				
-			}
+			// }
+			
+			// for (j = 4; j <= i; j++)
+			// {
+			// 	if (data[j] == ',')
+			// 	{
+			// 		found = true;
+			// 		break;
+			// 	}
+				
+			// }
 			int iSize;
 			//DBG(data);
 			//DBG("\r\n");
 			if(found ==true)
 			{
-			String _id = data.substring(4, j);
-			chlID = _id.toInt();
-			String _size = data.substring(j+1, i);
-			iSize = _size.toInt();
-			//DBG(_size);
-			String str = data.substring(i+1, i+1+iSize);
-			strcpy(buf, str.c_str());	
-			//DBG(str);
+				String _id = data.substring(4, comma_index);
+				chlID = _id.toInt();
+				String _size = data.substring(comma_index+1, semicolon_index);
+				iSize = _size.toInt();
+				//DBG(_size);
+				String str = data.substring(semicolon_index+1, semicolon_index+1+iSize);
+				str.toCharArray(buf, str.length());
+				//DBG(str);
 						
 			}
 			else
 			{			
-			String _size = data.substring(4, i);
-			iSize = _size.toInt();
-			//DBG(iSize);
-			//DBG("\r\n");
-			String str = data.substring(i+1, i+1+iSize);
-			strcpy(buf, str.c_str());
-			//DBG(str);
+				String _size = data.substring(4, semicolon_index);
+				iSize = _size.toInt();
+				//DBG(iSize);
+				//DBG("\r\n");
+				String str = data.substring(semicolon_index+1, semicolon_index+1+iSize);
+				//strcpy(buf, str.c_str());
+				str.toCharArray(buf, str.length());
+				//DBG(str);
 			}
 			return iSize;
 		}
@@ -256,7 +287,7 @@ void WIFI::Reset(void)
 	unsigned long start;
 	start = millis();
     while (millis()-start<5000) {                            
-        if(_cell.find("ready")==true)
+        if(findInStream("ready")==true)
         {
 			DBG("reboot wifi is OK\r\n");
            break;
@@ -465,7 +496,7 @@ boolean WIFI::confJAP(String ssid , String pwd)
     unsigned long start;
 	start = millis();
     while (millis()-start<3000) {                            
-        if(_cell.find("OK")==true)
+        if(findInStream("OK")==true)
         {
 		   return true;
            
@@ -489,7 +520,7 @@ boolean WIFI::quitAP(void)
     unsigned long start;
 	start = millis();
     while (millis()-start<3000) {                            
-        if(_cell.find("OK")==true)
+        if(findInStream("OK")==true)
         {
 		   return true;
            
@@ -564,7 +595,7 @@ boolean WIFI::confSAP(String ssid , String pwd , byte chl , byte ecn)
 	unsigned long start;
 	start = millis();
     while (millis()-start<3000) {                            
-        if(_cell.find("OK")==true )
+        if(findInStream("OK")==true )
         {
            return true;
         }
@@ -678,7 +709,7 @@ boolean WIFI::confMux(boolean a)
 	unsigned long start;
 	start = millis();
 	while (millis()-start<3000) {                            
-        if(_cell.find("OK")==true )
+        if(findInStream("OK")==true )
         {
            return true;
         }
@@ -816,7 +847,7 @@ boolean WIFI::Send(String str)
 	start = millis();
 	bool found;
 	while (millis()-start<5000) {                            
-        if(_cell.find(">")==true )
+        if(findInStream(">")==true )
         {
 			found = true;
            break;
@@ -870,7 +901,7 @@ boolean WIFI::Send(byte id, String str)
 	start = millis();
 	bool found;
 	while (millis()-start<5000) {                          
-        if(_cell.find(">")==true )
+        if(findInStream(">")==true )
         {
 			found = true;
            break;
