@@ -1,6 +1,6 @@
-# ESP8266 library with ATTiny suppoer#
+# ESP8266 library with ATtiny85 support#
 
-For use with UNO, MEGA, and ATTiny85/45
+For use with UNO, MEGA, and ATtiny85/45
 
 Written by Stan Lee from Itead Studio, forked from his repository (instructions and credits there):
 https://github.com/itead/ITEADLIB_Arduino_ESP8266
